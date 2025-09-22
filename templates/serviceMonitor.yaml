@@ -1,0 +1,22 @@
+{{- if .Values.serviceMonitor.enabled -}}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    {{- include "ngpp-store-cluster-aks-helm.serviceMonitorSelector" . | nindent 4 }}
+    {{- include "ngpp-store-cluster-aks-helm.labels" . | nindent 4 }}
+  name: {{ include "ngpp-store-cluster-aks-helm.fullname" . }}
+spec:  
+  endpoints:
+  {{- range .Values.serviceMonitor.endpoints }}
+  - interval: {{ .interval }}
+    path: {{ .path }}
+    targetPort: {{ .targetPort }}
+  {{- end }}
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "ngpp-store-cluster-aks-helm.labels" . | nindent 6 }}
+{{ end -}}

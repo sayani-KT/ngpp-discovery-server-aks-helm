@@ -1,0 +1,17 @@
+name: Lint
+on:
+  pull_request:
+    branches: [ main ]
+jobs:
+  lint:
+    runs-on: 
+      - self-hosted
+      - tsa
+      - kroger
+    steps:
+    - name: 'Checkout self repo'
+      uses: actions/checkout@v2
+    - name: 'Helm Lint'
+      uses: WyriHaximus/github-action-helm3@v2
+      with:
+        exec: helm lint .

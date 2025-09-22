@@ -1,0 +1,26 @@
+name: Publish to Artifactory
+on:
+  push:
+    branches: [ main ]
+jobs:
+  build:
+    runs-on:  [ self-hosted, tsa, kroger ]
+    steps:
+    - name: 'Checkout self repo'
+      uses: actions/checkout@v2
+    - name: 'Checkout helm-package action'
+      uses: actions/checkout@v2
+      with:
+        repository: krogertechnology/kps-action-helm-package
+        ref: master
+        token: ${{ secrets.GH_TOKEN }}
+        persist-credentials: false
+        path: ./.github/actions/kps-action-helm-package
+    - name: 'Helm Package and Publish'
+      uses: ./.github/actions/kps-action-helm-package
+      env:
+        HELM_USER: ${{ secrets.HELM_SAAS_USERNAME }}
+        HELM_PASSWORD: ${{ secrets.HELM_SAAS_PASSWORD }}
+      with:
+        chart-path: . 
+        artifactory-uri: https://krogertechnology.jfrog.io/artifactory/helm-cdc-local/

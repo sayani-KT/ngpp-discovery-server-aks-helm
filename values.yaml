@@ -1,0 +1,142 @@
+# Default values for app-demo.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Name of your service
+apiVersion: apps/v1
+name: ngpp-discovery-server
+namespace: ${infra.kubernetes.namespace}
+configMapName: ngpp-discovery-server-aks-helm
+
+deployment:
+  replicaCount: 1
+  httpPort: 8080
+  name: ${app.name}
+  readinessProbe:
+    endpoint: /manage/health
+    initialDelaySeconds: 60
+    timeoutSeconds: 5
+    periodSeconds: 20
+    failureThreshold: 10
+  livenessProbe:
+    endpoint: /manage/health
+    initialDelaySeconds: 60
+    timeoutSeconds: 5
+    periodSeconds: 20
+    failureThreshold: 10
+  requests:
+    cpu: 500m
+    memory: 1Gi
+  limits:
+    cpu: 2
+    memory: 4Gi
+  env:
+    vcap.services.ngpclu-auth.credentials.identityServerUri: "https://federation.kroger.com"
+
+image:
+  repository: krogertechnology-docker-prod.jfrog.io/next-pricing-strategy/ngpp-discovery-server
+  pullPolicy: Always
+  # Overrides the image tag whose default is the chart appVersion.
+  tag: ${workflow.variables.docker_image_tag}
+
+# If createImagePullSecret is set to true, the artifactory values below (or injected via 
+# Harness) will be used to create credentials to access Artifcatory Saas/Edge. 
+# Be sure to set artifactory values when this is true.
+createImagePullSecret: true
+
+artifactory:
+  name: ""
+  registry: ""
+  username: ""
+  password: ""
+  email: ""
+  skipVersioning: false
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: ClusterIP
+  port: 8080
+  containerPort: 8080
+
+ingress:
+  name: ngpp-discovery-server
+  enabled: true
+  className: "nginx"
+  annotations: 
+    cert-manager.io/issuer: krogerissuer
+    cert-manager.io/issuer-kind: KrogerIssuer
+    cert-manager.io/issuer-group: certs
+  hosts:
+    - host: ${service.name}.${infra.kubernetes.namespace}.${serviceVariable.domain}
+      paths:
+        - path: /
+          pathType: ImplementationSpecific
+  tls:
+   - secretName:  ${service.name}-tls-secret
+     hosts:
+       - ${service.name}.${infra.kubernetes.namespace}.${serviceVariable.domain}
+
+resources: 
+  # We usually recommend not to specify default resources and to leave this as a conscious
+  # choice for the user. This also increases chances charts run on environments with little
+  # resources, such as Minikube. If you do want to specify resources, uncomment the following
+  # lines, adjust them as necessary, and remove the curly braces after 'resources:'.
+  requests:
+    cpu: 00m
+    memory: 250M
+  limits:
+    cpu: 500m
+    memory: 1Gi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 4
+  targetCPUUtilizationPercentage: 90
+  targetMemoryUtilizationPercentage: 90
+
+nodeSelector: {}
+
+secrets: {}
+
+tolerations: []
+
+affinity: {}
+
+serviceMonitor:
+  enabled: true
+  endpoints:
+  - interval: 15s
+    path: metrics
+    targetPort: 8080
+  serviceMonitorSelector:
+    release: prometheus
+imageCredentials:
+  name: ngppdiscoveryserverservice-image
+env:
+  config:
+    kroger.api.read.scopes: "pass here"
